@@ -1,8 +1,9 @@
+use std::io::{stdout, Write};
 use std::sync::mpsc;
 use std::thread;
 use std::time::{Duration, Instant};
 
-use console::Term;
+use termion::{clear, cursor};
 
 use crate::event::Event;
 use crate::input::Reader;
@@ -13,7 +14,6 @@ const MSEC_TICKER_RATE: u64 = 1000;
 struct TickTimer(Duration);
 
 pub(crate) fn start(duration: Duration) {
-    let term = Term::stdout();
     let (ttick, rtick): (mpsc::Sender<TickTimer>, mpsc::Receiver<TickTimer>) = mpsc::channel();
     let (tplay, rplay): (mpsc::Sender<Event>, mpsc::Receiver<Event>) = mpsc::channel();
     thread::spawn(move || -> ! {
@@ -26,20 +26,21 @@ pub(crate) fn start(duration: Duration) {
         reader.run();
     });
 
+    print!("{}", clear::CurrentLine);
+    print!("{}", cursor::Hide);
     loop {
         if let Ok(t) = rtick.recv() {
             if t.0 > duration {
                 return;
             }
 
-            term.clear_line().unwrap();
-            let s = format!(
+            print!("{}{}", clear::All, cursor::Goto(1, 1));
+            print!(
                 "rest: {min:}:{sec:02}",
                 min = t.0.as_secs() / 60,
                 sec = t.0.as_secs() % 60
             );
-            term.write_line(&s).unwrap();
-            term.move_cursor_up(1).unwrap();
+            stdout().flush().unwrap();
 
             thread::sleep(Duration::from_millis(MSEC_PER_FLAME));
         }
