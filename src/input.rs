@@ -7,18 +7,20 @@ use termion::input::TermRead;
 use crate::event::Event;
 
 pub(crate) struct Reader {
-    tx: mpsc::Sender<Event>,
+    play: mpsc::Sender<Event>,
 }
 
 impl Reader {
-    pub(crate) fn new(tx: mpsc::Sender<Event>) -> Self {
-        Self { tx }
+    pub(crate) fn new(play: mpsc::Sender<Event>) -> Self {
+        Self { play }
     }
 
     pub(crate) fn run(&self) {
-        loop {
-            match stdin().keys().next().unwrap() {
-                Ok(Key::Char('d')) => self.tx.send(Event::StopTimer).unwrap(),
+        let stdin = stdin();
+        for c in stdin.keys() {
+            match c {
+                Ok(Key::Ctrl('p')) => self.play.send(Event::Play).unwrap(),
+                Ok(Key::Ctrl('s')) => self.play.send(Event::Stop).unwrap(),
                 _ => continue,
             }
         }
