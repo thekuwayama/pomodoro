@@ -21,7 +21,7 @@ impl Reader {
             match c {
                 Ok(Key::Ctrl('p')) => self.play.send(Event::Play).unwrap(),
                 Ok(Key::Ctrl('s')) => self.play.send(Event::Stop).unwrap(),
-                _ => continue,
+                _ => {}
             }
         }
     }
