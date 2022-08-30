@@ -4,5 +4,5 @@ mod timer;
 
 fn main() {
     let now = Instant::now();
-    timer::print_loop(&now, 25, 1000)
+    timer::start(&now, 25)
 }
