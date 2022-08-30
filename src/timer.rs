@@ -4,6 +4,9 @@ use std::time::{Duration, Instant};
 
 use console::Term;
 
+const MSEC_PER_FLAME: u64 = 500;
+const MSEC_TICKER_RATE: u64 = 1000;
+
 pub(crate) fn start(start: &Instant, period: u64) {
     let term = Term::stdout();
     let (tx, rx) = mpsc::channel();
@@ -18,11 +21,12 @@ pub(crate) fn start(start: &Instant, period: u64) {
             return;
         }
 
+        term.clear_line().unwrap();
         let s = format!("start: {:?}, elapsed: {:?}", start, elapsed);
         term.write_line(&s).unwrap();
         term.move_cursor_up(1).unwrap();
-        thread::sleep(Duration::from_millis(1000));
-        term.clear_line().unwrap();
+
+        thread::sleep(Duration::from_millis(MSEC_PER_FLAME));
     }
 }
 
@@ -38,7 +42,7 @@ impl Ticker {
     fn run(&self) -> ! {
         loop {
             self.tx.send(Instant::now()).unwrap();
-            thread::sleep(Duration::from_millis(1000));
+            thread::sleep(Duration::from_millis(MSEC_TICKER_RATE));
         }
     }
 }
