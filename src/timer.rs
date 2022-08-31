@@ -14,8 +14,8 @@ const MSEC_TICKER_RATE: u64 = 1000;
 struct TickTimer(Duration);
 
 pub(crate) fn start(duration: Duration) {
-    let (ttick, rtick): (mpsc::Sender<TickTimer>, mpsc::Receiver<TickTimer>) = mpsc::channel();
-    let (tplay, rplay): (mpsc::Sender<Event>, mpsc::Receiver<Event>) = mpsc::channel();
+    let (ttick, rtick) = mpsc::channel::<TickTimer>();
+    let (tplay, rplay) = mpsc::channel::<Event>();
     thread::spawn(move || -> ! {
         let ticker = Ticker::new(duration, ttick, rplay);
         ticker.run();
@@ -26,8 +26,7 @@ pub(crate) fn start(duration: Duration) {
         reader.run();
     });
 
-    print!("{}", clear::CurrentLine);
-    print!("{}", cursor::Hide);
+    print!("{}{}", clear::CurrentLine, cursor::Hide);
     loop {
         if let Ok(t) = rtick.recv() {
             if t.0 > duration {
