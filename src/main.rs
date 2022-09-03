@@ -1,7 +1,6 @@
 use std::time::Duration;
 
 mod event;
-mod input;
 mod timer;
 
 fn main() {

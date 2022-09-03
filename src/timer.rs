@@ -1,12 +1,15 @@
-use std::io::{stdout, Write};
-use std::sync::mpsc;
+use std::io::{stdin, stdout, Write};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{mpsc, Arc};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use termion::{clear, cursor};
+use termion::event::Key;
+use termion::input::TermRead;
+use termion::raw::IntoRawMode;
+use termion::{clear, cursor, screen};
 
 use crate::event::Event;
-use crate::input::Reader;
 
 const MSEC_PER_FLAME: u64 = 500;
 const MSEC_TICKER_RATE: u64 = 1000;
@@ -16,30 +19,47 @@ struct TickTimer(Duration);
 pub(crate) fn start(duration: Duration) {
     let (ttick, rtick) = mpsc::channel::<TickTimer>();
     let (tplay, rplay) = mpsc::channel::<Event>();
+    let latch1 = Arc::new(AtomicBool::new(true));
+    let latch2 = latch1.clone();
     thread::spawn(move || -> ! {
-        let ticker = Ticker::new(duration, ttick, rplay);
+        let ticker = Ticker::new(duration, ttick, rplay, latch1);
         ticker.run();
     });
 
-    thread::spawn(|| {
-        let reader = Reader::new(tplay);
-        reader.run();
+    let stdin = stdin();
+    let mut screen = screen::AlternateScreen::from(stdout().into_raw_mode().unwrap());
+    thread::spawn(move || {
+        for c in stdin.keys() {
+            match c {
+                Ok(Key::Ctrl('p')) => {
+                    latch2.store(true, Ordering::Relaxed);
+                    tplay.send(Event::Play).unwrap();
+                }
+                Ok(Key::Ctrl('s')) => {
+                    latch2.store(false, Ordering::Relaxed);
+                    tplay.send(Event::Stop).unwrap();
+                }
+                _ => {}
+            }
+        }
     });
 
-    print!("{}{}", clear::CurrentLine, cursor::Hide);
+    write!(screen, "{}{}", clear::CurrentLine, cursor::Hide).unwrap();
     loop {
         if let Ok(t) = rtick.recv() {
             if t.0 > duration {
                 return;
             }
 
-            print!("{}{}", clear::All, cursor::Goto(1, 1));
-            print!(
+            write!(screen, "{}{}", clear::All, cursor::Goto(1, 1)).unwrap();
+            write!(
+                screen,
                 "rest: {min:}:{sec:02}",
                 min = t.0.as_secs() / 60,
                 sec = t.0.as_secs() % 60
-            );
-            stdout().flush().unwrap();
+            )
+            .unwrap();
+            screen.flush().unwrap();
 
             thread::sleep(Duration::from_millis(MSEC_PER_FLAME));
         }
@@ -50,30 +70,36 @@ struct Ticker {
     duration: Duration,
     tick: mpsc::Sender<TickTimer>,
     play: mpsc::Receiver<Event>,
+    latch: Arc<AtomicBool>,
 }
 
 impl Ticker {
-    fn new(duration: Duration, tick: mpsc::Sender<TickTimer>, play: mpsc::Receiver<Event>) -> Self {
+    fn new(
+        duration: Duration,
+        tick: mpsc::Sender<TickTimer>,
+        play: mpsc::Receiver<Event>,
+        latch: Arc<AtomicBool>,
+    ) -> Self {
         Self {
             duration,
             tick,
             play,
+            latch,
         }
     }
 
     fn run(&self) -> ! {
-        let mut latch = true;
         let mut duration = self.duration;
         let mut end = Instant::now() + self.duration;
         loop {
-            if !latch {
+            if !self.latch.load(Ordering::Relaxed) {
                 match self.play.recv() {
                     Ok(Event::Play) => {
-                        latch = true;
+                        self.latch.store(true, Ordering::Relaxed);
                         end = Instant::now() + duration;
                     }
                     Ok(Event::Stop) => {
-                        latch = false;
+                        self.latch.store(false, Ordering::Relaxed);
                         duration = end - Instant::now();
                         continue;
                     }
