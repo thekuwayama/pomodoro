@@ -2,6 +2,7 @@ use std::process;
 use std::time::Duration;
 
 mod event;
+mod format;
 mod ticker;
 mod timer;
 

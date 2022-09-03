@@ -11,6 +11,7 @@ use termion::raw::IntoRawMode;
 use termion::{clear, cursor, screen};
 
 use crate::event::Event;
+use crate::format;
 use crate::ticker::{TickTimer, Ticker};
 
 const MSEC_PER_FLAME: u64 = 500;
@@ -38,12 +39,7 @@ pub(crate) fn start(duration: Duration) -> Result<()> {
                 }
 
                 write!(screen, "{}{}", clear::All, cursor::Goto(1, 1))?;
-                write!(
-                    screen,
-                    "rest: {min:}:{sec:02}",
-                    min = t.rest().as_secs() / 60,
-                    sec = t.rest().as_secs() % 60
-                )?;
+                write!(screen, "{}", format::format(t.rest()))?;
                 screen.flush()?;
 
                 thread::sleep(Duration::from_millis(MSEC_PER_FLAME));
