@@ -4,7 +4,7 @@ use std::sync::{mpsc, Arc};
 use std::thread;
 use std::time::Duration;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
@@ -29,29 +29,6 @@ pub(crate) fn start(duration: Duration) -> Result<()> {
 
     let stdin = stdin();
     let mut screen = screen::AlternateScreen::from(stdout().into_raw_mode()?);
-    let rh = thread::spawn(move || -> Result<()> {
-        for c in stdin.keys() {
-            match c {
-                Ok(Key::Ctrl('p')) => {
-                    if latch2.load(Ordering::Relaxed) {
-                        latch2.store(false, Ordering::Relaxed);
-                        tplay.send(Event::Pose)?;
-                    } else {
-                        latch2.store(true, Ordering::Relaxed);
-                        tplay.send(Event::Play)?;
-                    }
-                }
-                Ok(Key::Ctrl('s')) | Ok(Key::Ctrl('c')) | Ok(Key::Ctrl('d')) => {
-                    latch2.store(false, Ordering::Relaxed);
-                    tplay.send(Event::Stop)?;
-                    return Ok(());
-                }
-                _ => {}
-            }
-        }
-        Ok(())
-    });
-
     let wh = thread::spawn(move || -> Result<()> {
         write!(screen, "{}{}", clear::CurrentLine, cursor::Hide)?;
         loop {
@@ -77,8 +54,37 @@ pub(crate) fn start(duration: Duration) -> Result<()> {
         }
     });
 
-    th.join();
-    wh.join();
-    rh.join();
+    for c in stdin.keys() {
+        match c {
+            Ok(Key::Ctrl('p')) => {
+                if latch2.load(Ordering::Relaxed) {
+                    latch2.store(false, Ordering::Relaxed);
+                    tplay.send(Event::Pose)?;
+                } else {
+                    latch2.store(true, Ordering::Relaxed);
+                    tplay.send(Event::Play)?;
+                }
+            }
+            Ok(Key::Ctrl('s')) | Ok(Key::Ctrl('c')) | Ok(Key::Ctrl('d')) => {
+                latch2.store(false, Ordering::Relaxed);
+                tplay.send(Event::Stop)?;
+                break;
+            }
+            _ => {}
+        }
+    }
+
+    match th.join() {
+        Err(_) => return Err(anyhow!("hogehoge")),
+        Ok(Err(msg)) => return Err(msg),
+        _ => {}
+    }
+
+    match wh.join() {
+        Err(_) => return Err(anyhow!("hogehoge")),
+        Ok(Err(msg)) => return Err(msg),
+        _ => {}
+    }
+
     Ok(())
 }
