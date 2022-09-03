@@ -3,9 +3,17 @@ use std::sync::{mpsc, Arc};
 use std::thread;
 use std::time::{Duration, Instant};
 
+use anyhow::Result;
+
 use crate::event::Event;
 
-pub(crate) struct TickTimer(pub(crate) Duration);
+pub(crate) struct TickTimer(Duration);
+
+impl TickTimer {
+    pub(crate) fn rest(&self) -> Duration {
+        self.0
+    }
+}
 
 pub(crate) struct Ticker {
     duration: Duration,
@@ -32,7 +40,7 @@ impl Ticker {
         }
     }
 
-    pub(crate) fn run(&self) {
+    pub(crate) fn run(&self) -> Result<()> {
         let mut duration = self.duration;
         let mut end = Instant::now() + self.duration;
         loop {
@@ -47,12 +55,12 @@ impl Ticker {
                         duration = end - Instant::now();
                         continue;
                     }
-                    Ok(Event::Stop) => return,
+                    Ok(Event::Stop) => return Ok(()),
                     _ => continue,
                 }
             }
 
-            self.ttick.send(TickTimer(end - Instant::now())).unwrap();
+            self.ttick.send(TickTimer(end - Instant::now()))?;
             thread::sleep(Duration::from_millis(self.tick_rate));
         }
     }
