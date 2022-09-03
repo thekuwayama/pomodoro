@@ -2,7 +2,7 @@ use std::io::{stdin, stdout, Write};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{mpsc, Arc};
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use termion::event::Key;
 use termion::input::TermRead;
@@ -10,11 +10,10 @@ use termion::raw::IntoRawMode;
 use termion::{clear, cursor, screen};
 
 use crate::event::Event;
+use crate::ticker::{TickTimer, Ticker};
 
 const MSEC_PER_FLAME: u64 = 500;
 const MSEC_TICKER_RATE: u64 = 1000;
-
-struct TickTimer(Duration);
 
 pub(crate) fn start(duration: Duration) {
     let (ttick, rtick) = mpsc::channel::<TickTimer>();
@@ -22,7 +21,7 @@ pub(crate) fn start(duration: Duration) {
     let latch1 = Arc::new(AtomicBool::new(true));
     let latch2 = latch1.clone();
     let th = thread::spawn(move || {
-        let ticker = Ticker::new(duration, ttick, rplay, latch1);
+        let ticker = Ticker::new(duration, MSEC_TICKER_RATE, ttick, rplay, latch1);
         ticker.run();
     });
 
@@ -79,52 +78,4 @@ pub(crate) fn start(duration: Duration) {
     th.join().unwrap();
     wh.join().unwrap();
     rh.join().unwrap();
-}
-
-struct Ticker {
-    duration: Duration,
-    tick: mpsc::Sender<TickTimer>,
-    play: mpsc::Receiver<Event>,
-    latch: Arc<AtomicBool>,
-}
-
-impl Ticker {
-    fn new(
-        duration: Duration,
-        tick: mpsc::Sender<TickTimer>,
-        play: mpsc::Receiver<Event>,
-        latch: Arc<AtomicBool>,
-    ) -> Self {
-        Self {
-            duration,
-            tick,
-            play,
-            latch,
-        }
-    }
-
-    fn run(&self) {
-        let mut duration = self.duration;
-        let mut end = Instant::now() + self.duration;
-        loop {
-            if !self.latch.load(Ordering::Relaxed) {
-                match self.play.recv() {
-                    Ok(Event::Play) => {
-                        self.latch.store(true, Ordering::Relaxed);
-                        end = Instant::now() + duration;
-                    }
-                    Ok(Event::Pose) => {
-                        self.latch.store(false, Ordering::Relaxed);
-                        duration = end - Instant::now();
-                        continue;
-                    }
-                    Ok(Event::Stop) => return,
-                    _ => continue,
-                }
-            }
-
-            self.tick.send(TickTimer(end - Instant::now())).unwrap();
-            thread::sleep(Duration::from_millis(MSEC_TICKER_RATE));
-        }
-    }
 }

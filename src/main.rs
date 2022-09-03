@@ -1,9 +1,10 @@
 use std::time::Duration;
 
 mod event;
+mod ticker;
 mod timer;
 
 fn main() {
-    let duration = Duration::from_secs(5 * 60);
+    let duration = Duration::from_secs(25 * 60);
     timer::start(duration);
 }
