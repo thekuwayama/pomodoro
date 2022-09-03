@@ -75,13 +75,13 @@ pub(crate) fn start(duration: Duration) -> Result<()> {
     }
 
     match th.join() {
-        Err(_) => return Err(anyhow!("hogehoge")),
+        Err(_) => return Err(anyhow!("failed to join ticker handler")),
         Ok(Err(msg)) => return Err(msg),
         _ => {}
     }
 
     match wh.join() {
-        Err(_) => return Err(anyhow!("hogehoge")),
+        Err(_) => return Err(anyhow!("failed to join writer handler")),
         Ok(Err(msg)) => return Err(msg),
         _ => {}
     }
