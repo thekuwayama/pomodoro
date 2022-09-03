@@ -17,7 +17,23 @@ use crate::ticker::{TickTimer, Ticker};
 const MSEC_PER_FLAME: u64 = 500;
 const MSEC_TICKER_RATE: u64 = 1000;
 
-pub(crate) fn start(duration: Duration) -> Result<()> {
+pub(crate) enum ExitStatus {
+    Completed,
+    Terminated,
+}
+
+pub(crate) fn run_working(duration: Duration) -> Result<ExitStatus> {
+    run(format::working_format, duration)
+}
+
+pub(crate) fn run_break(duration: Duration) -> Result<ExitStatus> {
+    run(format::break_format, duration)
+}
+
+fn run<F: Fn(Duration) -> String + std::marker::Send + 'static>(
+    f: F,
+    duration: Duration,
+) -> Result<ExitStatus> {
     let (ttick, rtick) = mpsc::channel::<TickTimer>();
     let (tplay, rplay) = mpsc::channel::<Event>();
     let latch1 = Arc::new(AtomicBool::new(true));
@@ -39,7 +55,7 @@ pub(crate) fn start(duration: Duration) -> Result<()> {
                 }
 
                 write!(screen, "{}{}", clear::All, cursor::Goto(1, 1))?;
-                write!(screen, "{}", format::format(t.rest()))?;
+                write!(screen, "{}", f(t.rest()))?;
                 screen.flush()?;
 
                 thread::sleep(Duration::from_millis(MSEC_PER_FLAME));
@@ -50,6 +66,7 @@ pub(crate) fn start(duration: Duration) -> Result<()> {
         }
     });
 
+    let mut exit_status = ExitStatus::Completed;
     for c in stdin.keys() {
         match c {
             Ok(Key::Ctrl('p')) => {
@@ -64,6 +81,7 @@ pub(crate) fn start(duration: Duration) -> Result<()> {
             Ok(Key::Ctrl('s')) | Ok(Key::Ctrl('c')) | Ok(Key::Ctrl('d')) => {
                 latch2.store(false, Ordering::Relaxed);
                 tplay.send(Event::Stop)?;
+                exit_status = ExitStatus::Terminated;
                 break;
             }
             _ => {}
@@ -82,5 +100,5 @@ pub(crate) fn start(duration: Duration) -> Result<()> {
         _ => {}
     }
 
-    Ok(())
+    Ok(exit_status)
 }
