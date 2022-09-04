@@ -10,6 +10,7 @@ use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 use termion::{clear, cursor, screen};
 
+use crate::bell;
 use crate::event::Event;
 use crate::format;
 use crate::ticker::{TickTimer, Ticker};
@@ -17,6 +18,7 @@ use crate::ticker::{TickTimer, Ticker};
 const MSEC_PER_FLAME: u64 = 500;
 const MSEC_TICKER_RATE: u64 = 1000;
 
+#[derive(PartialEq)]
 pub(crate) enum ExitStatus {
     Completed,
     Terminated,
@@ -44,7 +46,6 @@ fn run<F: Fn(Duration) -> String + std::marker::Send + 'static>(
         Ok(())
     });
 
-    let stdin = stdin();
     let mut screen = screen::AlternateScreen::from(stdout().into_raw_mode()?);
     let wh = thread::spawn(move || -> Result<()> {
         write!(screen, "{}{}", clear::CurrentLine, cursor::Hide)?;
@@ -66,27 +67,31 @@ fn run<F: Fn(Duration) -> String + std::marker::Send + 'static>(
         }
     });
 
-    let mut exit_status = ExitStatus::Completed;
-    for c in stdin.keys() {
-        match c {
-            Ok(Key::Ctrl('p')) => {
-                if latch2.load(Ordering::Relaxed) {
-                    latch2.store(false, Ordering::Relaxed);
-                    tplay.send(Event::Pose)?;
-                } else {
-                    latch2.store(true, Ordering::Relaxed);
-                    tplay.send(Event::Play)?;
+    let terminated1 = Arc::new(AtomicBool::new(false));
+    let terminated2 = terminated1.clone();
+    thread::spawn(move || -> Result<()> {
+        for c in stdin().keys() {
+            match c {
+                Ok(Key::Ctrl('p')) => {
+                    if latch2.load(Ordering::Relaxed) {
+                        latch2.store(false, Ordering::Relaxed);
+                        tplay.send(Event::Pose)?;
+                    } else {
+                        latch2.store(true, Ordering::Relaxed);
+                        tplay.send(Event::Play)?;
+                    }
                 }
+                Ok(Key::Ctrl('s')) | Ok(Key::Ctrl('c')) | Ok(Key::Ctrl('d')) => {
+                    latch2.store(false, Ordering::Relaxed);
+                    tplay.send(Event::Stop)?;
+                    terminated2.store(true, Ordering::Relaxed);
+                    break;
+                }
+                _ => {}
             }
-            Ok(Key::Ctrl('s')) | Ok(Key::Ctrl('c')) | Ok(Key::Ctrl('d')) => {
-                latch2.store(false, Ordering::Relaxed);
-                tplay.send(Event::Stop)?;
-                exit_status = ExitStatus::Terminated;
-                break;
-            }
-            _ => {}
         }
-    }
+        Ok(())
+    });
 
     match th.join() {
         Err(_) => return Err(anyhow!("failed to join ticker handler")),
@@ -100,5 +105,10 @@ fn run<F: Fn(Duration) -> String + std::marker::Send + 'static>(
         _ => {}
     }
 
-    Ok(exit_status)
+    if terminated1.load(Ordering::Relaxed) {
+        return Ok(ExitStatus::Terminated);
+    }
+
+    bell::beep();
+    Ok(ExitStatus::Completed)
 }

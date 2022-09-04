@@ -61,6 +61,10 @@ impl Ticker {
             }
 
             self.ttick.send(TickTimer(end - Instant::now()))?;
+            if end < Instant::now() {
+                return Ok(());
+            }
+
             thread::sleep(Duration::from_millis(self.tick_rate));
         }
     }

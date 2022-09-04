@@ -1,6 +1,7 @@
 use std::process;
 use std::time::Duration;
 
+mod bell;
 mod cli;
 mod event;
 mod format;
