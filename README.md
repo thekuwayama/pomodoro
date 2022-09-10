@@ -6,6 +6,9 @@
 
 `pomodoro` is Pomodoro Timer CLI.
 
+<img src="/screenshots/working.png" width="75%">
+<img src="/screenshots/break.png" width="75%">
+
 
 ## Install
 
