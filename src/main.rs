@@ -1,5 +1,4 @@
-use std::process;
-use std::time::Duration;
+use std::{process, time::Duration};
 
 mod bell;
 mod cli;

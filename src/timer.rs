@@ -1,14 +1,17 @@
-use std::io::{stdin, stdout, Write};
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{mpsc, Arc};
-use std::thread;
-use std::time::Duration;
+use std::{
+    io::{stdin, stdout, Write},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        mpsc, Arc,
+    },
+    thread,
+    time::Duration,
+};
 
 use anyhow::{anyhow, Result};
-use termion::event::Key;
-use termion::input::TermRead;
-use termion::raw::IntoRawMode;
-use termion::{clear, color, cursor, screen, terminal_size};
+use termion::{
+    clear, color, cursor, event::Key, input::TermRead, raw::IntoRawMode, screen, terminal_size,
+};
 
 use crate::bell;
 use crate::event::Event;
