@@ -23,7 +23,6 @@ $ cargo install --git https://github.com/thekuwayama/pomodoro.git --branch main
 
 ```sh-session
 $ pomodoro --help
-pomodoro 0.1.0
 command-line pomodoro timer
 
 USAGE:
@@ -32,6 +31,7 @@ USAGE:
 ARGS:
     <WORKING_TIME>    working time (minutes) [default: 25]
     <BREAK_TIME>      break time (minutes) [default: 5]
+    <CYCLE>           cycle [default: 4]
 
 OPTIONS:
     -h, --help       Print help information

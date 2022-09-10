@@ -2,6 +2,7 @@ use clap::{crate_description, crate_name, crate_version, Arg, Command};
 
 pub(crate) const WORKING_TIME: &str = "WORKING_TIME";
 pub(crate) const BREAK_TIME: &str = "BREAK_TIME";
+pub(crate) const CYCLE: &str = "CYCLE";
 
 pub(crate) fn build() -> Command<'static> {
     Command::new(crate_name!())
@@ -17,6 +18,12 @@ pub(crate) fn build() -> Command<'static> {
             Arg::new(BREAK_TIME)
                 .help("break time (minutes)")
                 .default_value("5")
+                .required(false),
+        )
+        .arg(
+            Arg::new(CYCLE)
+                .help("cycle")
+                .default_value("4")
                 .required(false),
         )
 }

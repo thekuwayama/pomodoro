@@ -25,17 +25,32 @@ fn main() {
             eprintln!("failed, <{}> should be integer", cli::BREAK_TIME);
             process::exit(1);
         });
-
-    match timer::run_working(Duration::from_secs(working_time * 60)) {
-        Ok(timer::ExitStatus::Terminated) => return,
-        Err(e) => {
-            eprintln!("{}", e);
+    let cycle = matches
+        .value_of(cli::CYCLE)
+        .unwrap()
+        .parse::<u64>()
+        .unwrap_or_else(|_| {
+            eprintln!("failed, <{}> should be integer", cli::CYCLE);
             process::exit(1);
+        });
+
+    const SECS_OF_MINUTE: u64 = 60;
+    for _ in 0..cycle {
+        match timer::run_working(Duration::from_secs(working_time * SECS_OF_MINUTE)) {
+            Ok(timer::ExitStatus::Terminated) => return,
+            Err(e) => {
+                eprintln!("{}", e);
+                process::exit(1);
+            }
+            _ => {}
         }
-        _ => {}
+        match timer::run_break(Duration::from_secs(break_time * SECS_OF_MINUTE)) {
+            Ok(timer::ExitStatus::Terminated) => return,
+            Err(e) => {
+                eprintln!("{}", e);
+                process::exit(1);
+            }
+            _ => {}
+        }
     }
-    timer::run_break(Duration::from_secs(break_time * 60)).unwrap_or_else(|e| {
-        eprintln!("{}", e);
-        process::exit(1);
-    });
 }
