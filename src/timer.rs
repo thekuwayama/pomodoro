@@ -1,5 +1,6 @@
 use std::{
     io::{stdin, stdout, Write},
+    marker::Send,
     sync::{
         atomic::{AtomicBool, Ordering},
         mpsc, Arc,
@@ -29,16 +30,17 @@ pub(crate) enum ExitStatus {
 }
 
 pub(crate) fn run_working(duration: Duration) -> Result<ExitStatus> {
-    run(format::working_format, duration)
+    run(format::working_format, duration, color::Bg(color::LightRed))
 }
 
 pub(crate) fn run_break(duration: Duration) -> Result<ExitStatus> {
-    run(format::break_format, duration)
+    run(format::break_format, duration, color::Bg(color::LightCyan))
 }
 
-fn run<F: Fn(Duration) -> String + std::marker::Send + 'static>(
+fn run<F: Fn(Duration) -> String + Send + 'static, C: color::Color + Send + 'static>(
     f: F,
     duration: Duration,
+    bg: color::Bg<C>,
 ) -> Result<ExitStatus> {
     let (ttick, rtick) = mpsc::channel::<TickTimer>();
     let (tplay, rplay) = mpsc::channel::<Event>();
@@ -65,7 +67,7 @@ fn run<F: Fn(Duration) -> String + std::marker::Send + 'static>(
                     return Ok(());
                 }
 
-                show(&mut screen, &t, &f)?;
+                show(&mut screen, &t, &f, &bg)?;
                 thread::sleep(Duration::from_millis(MSEC_PER_FLAME));
             } else {
                 write!(
@@ -126,10 +128,11 @@ fn run<F: Fn(Duration) -> String + std::marker::Send + 'static>(
     Ok(ExitStatus::Completed)
 }
 
-fn show<W: Write, F: Fn(Duration) -> String + std::marker::Send + 'static>(
+fn show<W: Write, F: Fn(Duration) -> String + Send + 'static, C: color::Color + 'static>(
     screen: &mut W,
     t: &TickTimer,
     f: &F,
+    bg: &color::Bg<C>,
 ) -> Result<()> {
     let (w, _) = terminal_size()?;
     let menu_bar = if MENU_BAR.len() > w as usize {
@@ -141,7 +144,7 @@ fn show<W: Write, F: Fn(Duration) -> String + std::marker::Send + 'static>(
     write!(
         screen,
         "{}{:width$}{}",
-        color::Bg(color::LightRed),
+        bg,
         menu_bar,
         color::Bg(color::Reset),
         width = w as usize,

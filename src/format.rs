@@ -13,7 +13,7 @@ pub(crate) fn break_format(rest: Duration) -> String {
 
 fn do_format(icon: char, rest: Duration) -> String {
     format!(
-        "{icon:} rest: {min:}:{sec:02}",
+        "{icon:} {min:}:{sec:02}",
         icon = icon,
         min = rest.as_secs() / 60,
         sec = rest.as_secs() % 60
