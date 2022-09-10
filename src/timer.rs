@@ -8,7 +8,7 @@ use anyhow::{anyhow, Result};
 use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
-use termion::{clear, cursor, screen};
+use termion::{clear, color, cursor, screen, terminal_size};
 
 use crate::bell;
 use crate::event::Event;
@@ -17,6 +17,7 @@ use crate::ticker::{TickTimer, Ticker};
 
 const MSEC_PER_FLAME: u64 = 500;
 const MSEC_TICKER_RATE: u64 = 1000;
+const MENU_BAR: &str = "Pomodoro Timer | Ctrl-c: Exit | Ctrl-s: Exit | Ctrl-p: Pose/Play";
 
 #[derive(PartialEq)]
 pub(crate) enum ExitStatus {
@@ -48,20 +49,47 @@ fn run<F: Fn(Duration) -> String + std::marker::Send + 'static>(
 
     let mut screen = screen::AlternateScreen::from(stdout().into_raw_mode()?);
     let wh = thread::spawn(move || -> Result<()> {
-        write!(screen, "{}{}", clear::CurrentLine, cursor::Hide)?;
+        write!(
+            screen,
+            "{}{}{}",
+            clear::CurrentLine,
+            cursor::Hide,
+            color::Fg(color::LightWhite)
+        )?;
         loop {
             if let Ok(t) = rtick.recv() {
                 if t.rest() > duration {
                     return Ok(());
                 }
 
+                let (w, _) = terminal_size()?;
+                let menu_bar = if MENU_BAR.len() > w as usize {
+                    &MENU_BAR[..w as usize]
+                } else {
+                    MENU_BAR
+                };
                 write!(screen, "{}{}", clear::All, cursor::Goto(1, 1))?;
+                write!(
+                    screen,
+                    "{}{:width$}{}",
+                    color::Bg(color::LightRed),
+                    menu_bar,
+                    color::Bg(color::Reset),
+                    width = w as usize,
+                )?;
+                write!(screen, "{}", cursor::Goto(1, 3))?;
                 write!(screen, "{}", f(t.rest()))?;
                 screen.flush()?;
 
                 thread::sleep(Duration::from_millis(MSEC_PER_FLAME));
             } else {
-                write!(screen, "{}{}", clear::CurrentLine, cursor::Show)?;
+                write!(
+                    screen,
+                    "{}{}{}",
+                    clear::CurrentLine,
+                    cursor::Show,
+                    color::Fg(color::Reset)
+                )?;
                 return Ok(());
             }
         }
