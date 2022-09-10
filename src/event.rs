@@ -1,5 +1,5 @@
 pub(crate) enum Event {
     Play,
-    Pose,
+    Pause,
     Stop,
 }

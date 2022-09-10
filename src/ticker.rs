@@ -54,7 +54,7 @@ impl Ticker {
                         self.latch.store(true, Ordering::Relaxed);
                         end = Instant::now() + duration;
                     }
-                    Ok(Event::Pose) => {
+                    Ok(Event::Pause) => {
                         self.latch.store(false, Ordering::Relaxed);
                         duration = end - Instant::now();
                         continue;
