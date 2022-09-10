@@ -62,25 +62,7 @@ fn run<F: Fn(Duration) -> String + std::marker::Send + 'static>(
                     return Ok(());
                 }
 
-                let (w, _) = terminal_size()?;
-                let menu_bar = if MENU_BAR.len() > w as usize {
-                    &MENU_BAR[..w as usize]
-                } else {
-                    MENU_BAR
-                };
-                write!(screen, "{}{}", clear::All, cursor::Goto(1, 1))?;
-                write!(
-                    screen,
-                    "{}{:width$}{}",
-                    color::Bg(color::LightRed),
-                    menu_bar,
-                    color::Bg(color::Reset),
-                    width = w as usize,
-                )?;
-                write!(screen, "{}", cursor::Goto(1, 3))?;
-                write!(screen, "{}", f(t.rest()))?;
-                screen.flush()?;
-
+                show(&mut screen, &t, &f)?;
                 thread::sleep(Duration::from_millis(MSEC_PER_FLAME));
             } else {
                 write!(
@@ -139,4 +121,31 @@ fn run<F: Fn(Duration) -> String + std::marker::Send + 'static>(
 
     bell::beep();
     Ok(ExitStatus::Completed)
+}
+
+fn show<W: Write, F: Fn(Duration) -> String + std::marker::Send + 'static>(
+    screen: &mut W,
+    t: &TickTimer,
+    f: &F,
+) -> Result<()> {
+    let (w, _) = terminal_size()?;
+    let menu_bar = if MENU_BAR.len() > w as usize {
+        &MENU_BAR[..w as usize]
+    } else {
+        MENU_BAR
+    };
+    write!(screen, "{}{}", clear::All, cursor::Goto(1, 1))?;
+    write!(
+        screen,
+        "{}{:width$}{}",
+        color::Bg(color::LightRed),
+        menu_bar,
+        color::Bg(color::Reset),
+        width = w as usize,
+    )?;
+    write!(screen, "{}", cursor::Goto(1, 3))?;
+    write!(screen, "{}", f(t.rest()))?;
+    screen.flush()?;
+
+    Ok(())
 }
