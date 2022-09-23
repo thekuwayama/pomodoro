@@ -66,7 +66,7 @@ fn run<F: Fn(Duration) -> String + Send + 'static, C: color::Color + Send + 'sta
                     return Ok(());
                 }
 
-                show(&mut screen, &t, &f, &bg)?;
+                show(&mut screen, &t, &f, duration, &bg)?;
             } else {
                 write!(
                     screen,
@@ -130,26 +130,33 @@ fn show<W: Write, F: Fn(Duration) -> String + Send + 'static, C: color::Color + 
     screen: &mut W,
     t: &TickTimer,
     f: &F,
+    full: Duration,
     bg: &color::Bg<C>,
 ) -> Result<()> {
     let (w, _) = terminal_size()?;
-    let menu_bar = if MENU_BAR.len() > w as usize {
-        &MENU_BAR[..w as usize]
-    } else {
-        MENU_BAR
-    };
     write!(screen, "{}{}", clear::All, cursor::Goto(1, 1))?;
     write!(
         screen,
         "{}{:width$}{}",
         bg,
-        menu_bar,
+        menu_bar(w),
         color::Bg(color::Reset),
         width = w as usize,
     )?;
     write!(screen, "{}", cursor::Goto(1, 3))?;
-    write!(screen, "{}", f(t.rest()))?;
+    let rest = t.rest();
+    write!(screen, "{}", f(rest))?;
+    write!(screen, "{}", cursor::Goto(1, 5))?;
+    write!(screen, "{}", format::progress_bar(rest, full, w as u64))?;
     screen.flush()?;
 
     Ok(())
+}
+
+fn menu_bar(w: u16) -> &'static str {
+    if MENU_BAR.len() > w as usize {
+        &MENU_BAR[..w as usize]
+    } else {
+        MENU_BAR
+    }
 }

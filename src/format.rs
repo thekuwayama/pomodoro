@@ -19,3 +19,14 @@ fn do_format(icon: char, rest: Duration) -> String {
         sec = rest.as_secs() % 60
     )
 }
+
+pub(crate) fn progress_bar(rest: Duration, full: Duration, width: u64) -> String {
+    let full = full.as_secs();
+    let rest = rest.as_secs();
+    let progress = (full - rest) * width / full;
+    format!(
+        "{:░<width$}",
+        format!("{:█>progress$}", "", progress = progress as usize),
+        width = width as usize
+    )
+}
