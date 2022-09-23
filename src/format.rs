@@ -26,7 +26,7 @@ pub(crate) fn progress_bar(rest: Duration, full: Duration, width: u64) -> String
     let progress = (full - rest) * width / full;
     format!(
         "{:░<width$}",
-        format!("{:█>width$}", "", width = progress as usize),
+        format!("{:█>progress$}", "", progress = progress as usize),
         width = width as usize
     )
 }
