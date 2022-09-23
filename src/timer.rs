@@ -19,9 +19,8 @@ use crate::event::Event;
 use crate::format;
 use crate::ticker::{TickTimer, Ticker};
 
-const MSEC_PER_FLAME: u64 = 500;
 const MSEC_TICKER_RATE: u64 = 1000;
-const MENU_BAR: &str = "Pomodoro Timer | Ctrl-c: Exit | Ctrl-s: Exit | Ctrl-p: Pause/Play";
+const MENU_BAR: &str = "Pomodoro Timer | Ctrl-c: Exit | Ctrl-d: Exit | Ctrl-p: Pause/Play";
 
 #[derive(PartialEq)]
 pub(crate) enum ExitStatus {
@@ -68,7 +67,6 @@ fn run<F: Fn(Duration) -> String + Send + 'static, C: color::Color + Send + 'sta
                 }
 
                 show(&mut screen, &t, &f, &bg)?;
-                thread::sleep(Duration::from_millis(MSEC_PER_FLAME));
             } else {
                 write!(
                     screen,
@@ -96,7 +94,7 @@ fn run<F: Fn(Duration) -> String + Send + 'static, C: color::Color + Send + 'sta
                         tplay.send(Event::Play)?;
                     }
                 }
-                Ok(Key::Ctrl('s')) | Ok(Key::Ctrl('c')) | Ok(Key::Ctrl('d')) => {
+                Ok(Key::Ctrl('c')) | Ok(Key::Ctrl('d')) => {
                     latch2.store(false, Ordering::Relaxed);
                     tplay.send(Event::Stop)?;
                     terminated2.store(true, Ordering::Relaxed);
