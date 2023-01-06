@@ -10,7 +10,7 @@ mod timer;
 fn main() {
     let matches = cli::build().get_matches();
     let working_time = matches
-        .value_of(cli::WORKING_TIME)
+        .get_one::<String>(cli::WORKING_TIME)
         .unwrap()
         .parse::<u64>()
         .unwrap_or_else(|_| {
@@ -18,7 +18,7 @@ fn main() {
             process::exit(1);
         });
     let break_time = matches
-        .value_of(cli::BREAK_TIME)
+        .get_one::<String>(cli::BREAK_TIME)
         .unwrap()
         .parse::<u64>()
         .unwrap_or_else(|_| {
@@ -26,7 +26,7 @@ fn main() {
             process::exit(1);
         });
     let cycle = matches
-        .value_of(cli::CYCLE)
+        .get_one::<String>(cli::CYCLE)
         .unwrap()
         .parse::<u64>()
         .unwrap_or_else(|_| {

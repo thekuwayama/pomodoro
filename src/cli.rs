@@ -4,7 +4,7 @@ pub(crate) const WORKING_TIME: &str = "WORKING_TIME";
 pub(crate) const BREAK_TIME: &str = "BREAK_TIME";
 pub(crate) const CYCLE: &str = "CYCLE";
 
-pub(crate) fn build() -> Command<'static> {
+pub(crate) fn build() -> Command {
     Command::new(crate_name!())
         .version(crate_version!())
         .about(crate_description!())
