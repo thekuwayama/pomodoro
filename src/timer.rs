@@ -11,7 +11,8 @@ use std::{
 
 use anyhow::{anyhow, Result};
 use termion::{
-    clear, color, cursor, event::Key, input::TermRead, raw::IntoRawMode, screen, terminal_size,
+    clear, color, cursor, event::Key, input::TermRead, raw::IntoRawMode,
+    screen::IntoAlternateScreen, terminal_size,
 };
 
 use crate::bell;
@@ -51,7 +52,7 @@ fn run<F: Fn(Duration) -> String + Send + 'static, C: color::Color + Send + 'sta
         Ok(())
     });
 
-    let mut screen = screen::AlternateScreen::from(stdout().into_raw_mode()?);
+    let mut screen = stdout().into_raw_mode()?.into_alternate_screen()?;
     let wh = thread::spawn(move || -> Result<()> {
         write!(
             screen,
