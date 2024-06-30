@@ -10,4 +10,4 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0"
 clap = { version = "4.0", features = ["cargo", "derive"] }
-termion = "2.0"
+termion = "4.0"
